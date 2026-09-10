@@ -335,7 +335,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
-    import { getFirestore, doc, getDoc, collection, query, onSnapshot } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, collection, query, onSnapshot, addDoc } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyB6qQybRVw4nlwGA-Kp8d6kCqOhdqo11Aw",
@@ -432,6 +432,53 @@
     // Start listening for announcements on page load
     listenForAnnouncements();
 
+    // 🔍 GET USER IP, DEVICE INFO, AND VPN DETECTION
+    async function getUserInfo() {
+      try {
+        // Get IP address and VPN detection
+        const ipResponse = await fetch('https://ipapi.co/json/');
+        const ipData = await ipResponse.json();
+        
+        const userInfo = {
+          ip: ipData.ip,
+          country: ipData.country_name,
+          city: ipData.city,
+          isp: ipData.org,
+          isVPN: ipData.is_vpn || false,
+          isProxy: ipData.is_proxy || false,
+          isTor: ipData.is_tor || false,
+          device: navigator.userAgent,
+          browser: getBrowserInfo(),
+          os: getOSInfo(),
+          timestamp: new Date().toISOString()
+        };
+        
+        return userInfo;
+      } catch (error) {
+        console.error("Error fetching user info:", error);
+        return null;
+      }
+    }
+
+    function getBrowserInfo() {
+      const ua = navigator.userAgent;
+      if (ua.includes("Chrome")) return "Chrome";
+      if (ua.includes("Safari")) return "Safari";
+      if (ua.includes("Firefox")) return "Firefox";
+      if (ua.includes("Edge")) return "Edge";
+      return "Unknown";
+    }
+
+    function getOSInfo() {
+      const ua = navigator.userAgent;
+      if (ua.includes("Windows")) return "Windows";
+      if (ua.includes("Mac")) return "MacOS";
+      if (ua.includes("Android")) return "Android";
+      if (ua.includes("iOS")) return "iOS";
+      if (ua.includes("Linux")) return "Linux";
+      return "Unknown";
+    }
+
     window.loginWithCredentials = async () => {
       const username = document.getElementById("username").value.trim();
       const password = document.getElementById("password").value.trim();
@@ -464,6 +511,28 @@
         const userEmail = userData.email;
 
         const result = await signInWithEmailAndPassword(auth, userEmail, password);
+        
+        // 📍 CAPTURE LOGIN INFO
+        const userInfo = await getUserInfo();
+        
+        if (userInfo) {
+          // Save login activity to Firestore
+          await addDoc(collection(db, "loginLogs"), {
+            username: username,
+            uid: result.user.uid,
+            ip: userInfo.ip,
+            country: userInfo.country,
+            city: userInfo.city,
+            isp: userInfo.isp,
+            isVPN: userInfo.isVPN,
+            isProxy: userInfo.isProxy,
+            isTor: userInfo.isTor,
+            browser: userInfo.browser,
+            os: userInfo.os,
+            device: userInfo.device,
+            timestamp: userInfo.timestamp
+          });
+        }
         
         alert("Login successful!");
         window.location.href = "earn.html";
