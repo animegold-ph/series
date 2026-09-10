@@ -823,11 +823,6 @@
           </button>
         `;
 
-        // Make entire card clickable when eligible
-        if (canClaim) {
-          card.onclick = () => claimReward(reward.amount, reward.cost);
-        }
-
         grid.appendChild(card);
       });
     }
@@ -998,8 +993,5 @@
       <button class="close-modal" onclick="closeTimeModal()">OK</button>
     </div>
   </div>
-
-  <!-- Load announcement banner at end of body -->
-  <script src="announcement-banner.js"></script>
 </body>
 </html>
