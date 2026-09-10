@@ -603,6 +603,7 @@
     let userRef, userData = {};
     let isAdmin = false;
     let currentUserName = "User";
+    let isClaimingReward = false; // Debounce flag
 
     const REWARDS = [
       { amount: 100, cost: 100, label: '₱100' },
@@ -828,6 +829,12 @@
     }
 
     window.claimReward = async (amount, cost) => {
+      // ✅ DEBOUNCE: Prevent multiple submissions
+      if (isClaimingReward) {
+        showNotification('⏳ Processing your claim... please wait', true);
+        return;
+      }
+
       if (!userRef) {
         showNotification('Please log in first', true);
         return;
@@ -841,6 +848,9 @@
         }, 1500);
         return;
       }
+
+      // Set claiming flag
+      isClaimingReward = true;
 
       try {
         const userSnap = await getDoc(userRef);
@@ -879,6 +889,11 @@
       } catch (error) {
         console.error('Claim error:', error);
         showNotification('Failed to claim reward', true);
+      } finally {
+        // Reset claiming flag after 1 second
+        setTimeout(() => {
+          isClaimingReward = false;
+        }, 1000);
       }
     };
 
