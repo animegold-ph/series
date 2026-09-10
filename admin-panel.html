@@ -8,7 +8,7 @@
     * { margin:0; padding:0; box-sizing:border-box }
     body{ background:linear-gradient(-45deg,#1a0033,#2d0052,#0a0a2e,#16213e);background-size:400% 400%;animation:gradient 15s ease infinite;font-family:Arial,sans-serif;color:#fff;padding:20px;min-height:100vh }
     @keyframes gradient{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-    .container{max-width:900px;margin:0 auto}
+    .container{max-width:1200px;margin:0 auto}
     h1{font-size:2.2rem;background:linear-gradient(135deg,#ff9800,#ffb84d);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:18px}
     .admin-section{background:rgba(20,20,40,0.9);padding:20px;border-radius:12px;margin-bottom:20px;border:1px solid rgba(255,152,0,0.2)}
     .form-group{margin-bottom:15px}
@@ -22,13 +22,15 @@
     .notification{position:fixed;top:18px;right:18px;background:#27ae60;padding:10px 14px;border-radius:8px;color:#fff;font-weight:700;z-index:10000}
     .error{background:#e74c3c}
     h2{font-size:1.5rem;color:#ffb84d;margin-bottom:15px}
-    .announcements-list,.events-list,.broadcasts-list{display:flex;flex-direction:column;gap:10px}
-    .announcement-item,.event-item,.broadcast-item{background:rgba(30,30,50,0.8);padding:12px;border-radius:8px;border-left:4px solid #ff9800}
+    .announcements-list,.events-list,.broadcasts-list,.login-logs-list{display:flex;flex-direction:column;gap:10px}
+    .announcement-item,.event-item,.broadcast-item,.login-log-item{background:rgba(30,30,50,0.8);padding:12px;border-radius:8px;border-left:4px solid #ff9800}
     .broadcast-item{border-left-color:#ff4500}
-    .announcement-item strong,.event-item strong,.broadcast-item strong{color:#ffb84d}
+    .login-log-item{border-left-color:#27ae60}
+    .announcement-item strong,.event-item strong,.broadcast-item strong,.login-log-item strong{color:#ffb84d}
     .broadcast-item strong{color:#ff6347}
-    .announcement-item p,.event-item p,.broadcast-item p{margin:5px 0;font-size:14px}
-    .announcement-item .time,.event-item .time,.broadcast-item .time{font-size:12px;color:#aaa}
+    .login-log-item strong{color:#27ae60}
+    .announcement-item p,.event-item p,.broadcast-item p,.login-log-item p{margin:5px 0;font-size:14px}
+    .announcement-item .time,.event-item .time,.broadcast-item .time,.login-log-item .time{font-size:12px;color:#aaa}
     .delete-btn{padding:6px 12px;font-size:12px;background:#e74c3c;margin-top:8px}
     .edit-btn{padding:6px 12px;font-size:12px;background:#3498db;margin-top:8px;margin-right:5px}
     .auth-check{text-align:center;padding:40px}
@@ -36,7 +38,7 @@
     .event-expired{border-left-color:#e74c3c;background:rgba(231,76,60,0.1)}
     .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);justify-content:center;align-items:center;z-index:999}
-    .modal-content{background:#333;padding:30px;border-radius:10px;text-align:center;width:400px}
+    .modal-content{background:#333;padding:30px;border-radius:10px;text-align:center;width:400px;max-height:90vh;overflow-y:auto}
     .modal-content h2{margin-top:0;color:#ffb84d}
     .modal-content button{margin:10px 5px;padding:10px 20px}
     .modal-content input{width:100%;padding:10px;margin:10px 0;border-radius:5px;border:none;box-sizing:border-box}
@@ -49,12 +51,19 @@
     .preview-p{color:#000;font-weight:bold;margin:8px 0;font-size:16px}
     .preview-username{color:#d63031;font-size:18px;font-weight:bold}
     .preview-amount{color:#00b894;font-size:20px;font-weight:bold}
+    .vpn-status{display:inline-block;padding:4px 8px;border-radius:4px;font-size:11px;font-weight:bold;margin:0 2px}
+    .vpn-status.yes{background:#e74c3c;color:#fff}
+    .vpn-status.no{background:#27ae60;color:#fff}
+    .login-detail-info{background:rgba(0,0,0,0.3);padding:8px;border-radius:4px;margin:5px 0;font-size:12px;border-left:3px solid #ff9800}
+    .tabs{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+    .tab-btn{padding:10px 15px;background:rgba(255,152,0,0.2);border:2px solid rgba(255,152,0,0.3);color:#ffb84d;cursor:pointer;border-radius:6px;transition:all 0.3s}
+    .tab-btn.active{background:rgba(255,152,0,0.5);border-color:#ff9800}
     @media (max-width:600px){ .form-row{grid-template-columns:1fr} }
   </style>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
-    import { getFirestore, doc, getDoc, collection, addDoc, query, orderBy, onSnapshot, deleteDoc, serverTimestamp, Timestamp, updateDoc } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, collection, addDoc, query, orderBy, onSnapshot, deleteDoc, serverTimestamp, Timestamp, updateDoc, where } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyB6qQybRVw4nlwGA-Kp8d6kCqOhdqo11Aw",
@@ -114,6 +123,7 @@
       loadBroadcasts();
       loadAnnouncements();
       loadEvents();
+      loadLoginLogs();
       
       // Check saved state
       const savedState = localStorage.getItem('fakeAnnouncementsEnabled') === 'true';
@@ -124,6 +134,56 @@
         startFakeAnnouncements();
       }
     });
+
+    // Load login logs from Firebase
+    function loadLoginLogs(){
+      const list = document.getElementById('loginLogsList');
+      try {
+        const q = query(collection(db, 'loginLogs'), orderBy('timestamp', 'desc'));
+        
+        onSnapshot(q, (snap) => {
+          list.innerHTML = '';
+          if(snap.empty){
+            list.innerHTML = '<p style="color:#aaa">No login logs yet</p>';
+            return;
+          }
+
+          snap.forEach(doc => {
+            const data = doc.data();
+            const logTime = new Date(data.timestamp).toLocaleString();
+            const item = document.createElement('div');
+            item.className = 'login-log-item';
+            
+            const vpnStatus = data.isVPN || data.isProxy || data.isTor;
+            const vpnBadge = vpnStatus ? '<span class="vpn-status yes">⚠️ VPN</span>' : '<span class="vpn-status no">✅ CLEAN</span>';
+            
+            item.innerHTML = `
+              <strong>👤 ${data.username}</strong>
+              <div class="login-detail-info">
+                <strong>IP Address:</strong> ${data.ip} | ${data.country}, ${data.city}
+              </div>
+              <div class="login-detail-info">
+                <strong>ISP:</strong> ${data.isp}
+              </div>
+              <div class="login-detail-info">
+                <strong>Device:</strong> ${data.browser} / ${data.os}
+              </div>
+              <div class="login-detail-info">
+                <strong>VPN/Proxy/Tor Status:</strong> ${vpnBadge}
+              </div>
+              <p class="time">🕐 ${logTime}</p>
+            `;
+            list.appendChild(item);
+          });
+        }, (error) => {
+          console.warn('Error loading login logs:', error);
+          list.innerHTML = '<p style="color:#aaa">No login logs yet</p>';
+        });
+      } catch(e) {
+        console.warn('Login logs query failed:', e);
+        list.innerHTML = '<p style="color:#aaa">No login logs yet</p>';
+      }
+    }
 
     // Load broadcasts from Firebase
     function loadBroadcasts(){
@@ -522,6 +582,16 @@
     </div>
 
     <div id="adminPanel" style="display:none">
+      <!-- 🔍 LOGIN ACTIVITY SECTION -->
+      <div class="admin-section">
+        <h2>🔍 User Login Activity</h2>
+        <p style="color:#ffb84d; font-size:13px; margin-bottom:15px;">View all user login attempts with IP addresses, device info, and VPN detection</p>
+        
+        <div id="loginLogsList" class="login-logs-list">
+          <p style="color:#aaa">Loading...</p>
+        </div>
+      </div>
+
       <!-- Fake Announcements Control -->
       <div class="admin-section">
         <h2>🎪 Fake Announcements Generator</h2>
